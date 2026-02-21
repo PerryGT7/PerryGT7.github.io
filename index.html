@@ -912,10 +912,12 @@
       ctx.fill();
       ctx.strokeStyle = 'rgba(0,120,190,0.55)'; ctx.lineWidth = 2; ctx.stroke();
 
-      // Gap glow when proton is near
+      // Gap glow — brightest exactly when proton crosses, fades toward edges of window
       if (state === 'playing' && inGap()) {
-        const a = 0.12 + 0.12 * Math.sin(Date.now() / 80);
-        ctx.fillStyle = `rgba(0,220,255,${a})`;
+        const mod = theta % Math.PI;
+        const dist      = Math.min(mod, Math.PI - mod); // 0 at exact crossing
+        const intensity = 1 - (dist / GAP_ZONE);        // 1 at centre, 0 at edge
+        ctx.fillStyle = `rgba(0,220,255,${intensity * 0.40})`;
         ctx.fillRect(cx - GAP_HALF - 2, cy - MAX_R, (GAP_HALF + 2) * 2, MAX_R * 2);
       }
     }
@@ -992,7 +994,7 @@
       ctx.save(); ctx.globalAlpha = a;
       ctx.fillStyle = '#00eeff'; ctx.font = 'bold 15px Arial,sans-serif';
       ctx.textAlign = 'center'; ctx.shadowColor = '#00eeff'; ctx.shadowBlur = 10;
-      ctx.fillText('▼  PRESS SPACE TO BOOST!  ▼', cx, cy - MAX_R - 14);
+      ctx.fillText('▼  SPACE / TAP TO BOOST!  ▼', cx, cy - MAX_R - 14);
       ctx.restore();
     }
 
@@ -1066,14 +1068,8 @@
       requestAnimationFrame(loop);
     }
 
-    /* ── Input ── */
-    document.addEventListener('keydown', function (e) {
-      if (e.code !== 'Space') return;
-      // Only intercept when game section is roughly in view
-      const rect = canvas.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > window.innerHeight * 2) return;
-      e.preventDefault();
-
+    /* ── Shared boost handler ── */
+    function handleBoost() {
       if (state === 'idle' || state === 'win' || state === 'gameover') {
         reset(); state = 'playing'; return;
       }
@@ -1089,7 +1085,22 @@
         misses++; missFlash = 18;
         if (misses >= MAX_MISSES) state = 'gameover';
       }
+    }
+
+    /* ── Keyboard input ── */
+    document.addEventListener('keydown', function (e) {
+      if (e.code !== 'Space') return;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight * 2) return;
+      e.preventDefault();
+      handleBoost();
     });
+
+    /* ── Touch input (mobile) ── */
+    canvas.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      handleBoost();
+    }, { passive: false });
 
     loop();
   })();
