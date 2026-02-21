@@ -881,7 +881,7 @@
     let particles = [];
 
     const energy = () => Math.round((boosts / BOOSTS_NEEDED) * 100);
-    const inGap  = () => { const a = theta % Math.PI; return a < GAP_ZONE || a > Math.PI - GAP_ZONE; };
+    const inGap  = () => { const a = theta % Math.PI; return Math.abs(a - Math.PI / 2) < GAP_ZONE; };
     const pPos   = () => ({ x: cx + radius * Math.cos(theta), y: cy + radius * Math.sin(theta) });
 
     function reset() {
@@ -912,11 +912,11 @@
       ctx.fill();
       ctx.strokeStyle = 'rgba(0,120,190,0.55)'; ctx.lineWidth = 2; ctx.stroke();
 
-      // Gap glow — brightest exactly when proton crosses, fades toward edges of window
+      // Gap glow — brightest exactly when proton crosses (theta % π = π/2), fades toward edges
       if (state === 'playing' && inGap()) {
-        const mod = theta % Math.PI;
-        const dist      = Math.min(mod, Math.PI - mod); // 0 at exact crossing
-        const intensity = 1 - (dist / GAP_ZONE);        // 1 at centre, 0 at edge
+        const mod       = theta % Math.PI;
+        const dist      = Math.abs(mod - Math.PI / 2); // 0 at exact crossing
+        const intensity = Math.max(0, 1 - (dist / GAP_ZONE));
         ctx.fillStyle = `rgba(0,220,255,${intensity * 0.40})`;
         ctx.fillRect(cx - GAP_HALF - 2, cy - MAX_R, (GAP_HALF + 2) * 2, MAX_R * 2);
       }
